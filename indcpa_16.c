@@ -49,25 +49,25 @@ void poly_formseqto16(poly_16 *p, poly_16 *t, poly_16 *pseq) {
 }
 
 void keypair_formseqfrom16(uint8_t *keyseq, uint8_t *t, uint8_t *key) {
-  for(int i = 0; i < 3; i++) {
-    // for(int j = 0; j < 192; j++) {
-    //   for(int k = 0; k < 16; k++) {
-    //     key[k*3*384+i*384+j*2] = keyseq[i*384*16+j*32+k*2];
-    //     key[k*3*384+i*384+j*2+1] = keyseq[i*384*16+j*32+k*2+1];
-    //   }
-    // }
-    keypair_formseqfrom16_AVX2(key, keyseq, t, qdata_16.vec);  //这里参数位置不同是为了适应汇编中的宏函数，想和to16共用宏函数
-  }
+  // for(int i = 0; i < 3; i++) {
+  //   for(int j = 0; j < 192; j++) {
+  //     for(int k = 0; k < 16; k++) {
+  //       key[k*3*384+i*384+j*2] = keyseq[i*384*16+j*32+k*2];
+  //       key[k*3*384+i*384+j*2+1] = keyseq[i*384*16+j*32+k*2+1];
+  //     }
+  //   }
+  // }
+  keypair_formseqfrom16_AVX2(key, keyseq, t, qdata_16.vec);  //这里参数位置不同是为了适应汇编中的宏函数，想和to16共用宏函数
 }
 
 void keypair_formseqto16(uint8_t *key, uint8_t *t, uint8_t *keyseq) {
   // for(int i = 0; i < 3; i++) {
-    // for(int j = 0; j < 192; j++) {
-    //   for(int k = 0; k < 16; k++) {
-    //     keyseq[i*384*16+j*32+k*2] = key[k*3*384+i*384+j*2];
-    //     keyseq[i*384*16+j*32+k*2+1] = key[k*3*384+i*384+j*2+1];
-    //   }
-    // }
+  //   for(int j = 0; j < 192; j++) {
+  //     for(int k = 0; k < 16; k++) {
+  //       keyseq[i*384*16+j*32+k*2] = key[k*3*384+i*384+j*2];
+  //       keyseq[i*384*16+j*32+k*2+1] = key[k*3*384+i*384+j*2+1];
+  //     }
+  //   }
   // }
   keypair_formseqto16_AVX2(key, t, keyseq, qdata_16.vec);
 }
@@ -470,13 +470,19 @@ void indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                     uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES])
 {
   unsigned int i, j, k, p;
-  uint8_t buf[2*KYBER_SYMBYTES*16], pkseq[KYBER_INDCPA_PUBLICKEYBYTES], skseq[KYBER_INDCPA_SECRETKEYBYTES], tkp[KYBER_INDCPA_PUBLICKEYBYTES];
+  uint8_t buf[2*KYBER_SYMBYTES*16];// pkseq[KYBER_INDCPA_PUBLICKEYBYTES], skseq[KYBER_INDCPA_SECRETKEYBYTES], tkp[KYBER_INDCPA_PUBLICKEYBYTES];
+  uint8_t *pkseq = (uint8_t *)malloc(KYBER_INDCPA_PUBLICKEYBYTES);
+  uint8_t *skseq = (uint8_t *)malloc(KYBER_INDCPA_SECRETKEYBYTES);
+  uint8_t *tkp = (uint8_t *)malloc(KYBER_INDCPA_PUBLICKEYBYTES);
   const uint8_t *publicseed = buf;
   const uint8_t *noiseseed = buf + KYBER_SYMBYTES;
   polyvec_16 a[KYBER_K], aseq[KYBER_K], t[KYBER_K], skpv, skpvseq, tpv, e, eseq, pkpv, pkpvseq;
 
-  randombytes(buf, KYBER_SYMBYTES);
-  hash_g(buf, buf, KYBER_SYMBYTES);
+  randombytes(buf+KYBER_SYMBYTES*16, KYBER_SYMBYTES*16);  //只需要生成一半的随机数并放在后半部分的内存中，之后hash_gx4从后半部分开始取，生成的数从头开始存
+  for(int i = 0; i < 4; i++) {
+    hash_gx4(buf+8*i*KYBER_SYMBYTES, buf+(8*i+2)*KYBER_SYMBYTES, buf+(8*i+4)*KYBER_SYMBYTES, buf+(8*i+6)*KYBER_SYMBYTES, buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*i*4, buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*(i*4+1), buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*(i*4+2), buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*(i*4+3), KYBER_SYMBYTES);
+  }
+  // hash_g(buf, buf, KYBER_SYMBYTES);
 
   // for (i = 0; i < KYBER_K; i++) {
   //   for (j = 0; j < KYBER_K; j++) {
@@ -558,6 +564,10 @@ void indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
 
   memcpy(pk+KYBER_POLYVECBYTES*16, publicseed, KYBER_SYMBYTES*16*2);
 
+  free(pkseq);
+  free(skseq);
+  free(tkp);
+
 }
 
 
@@ -570,7 +580,11 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
                 )
 {
   unsigned int i, j, l, p;
-  uint8_t seed[KYBER_SYMBYTES*32], mseq[KYBER_INDCPA_MSGBYTES*32], cseq[KYBER_INDCPA_BYTES], tc[KYBER_INDCPA_BYTES], pkseq[KYBER_INDCPA_PUBLICKEYBYTES], tpk[KYBER_INDCPA_PUBLICKEYBYTES];
+  uint8_t seed[KYBER_SYMBYTES*32], mseq[KYBER_INDCPA_MSGBYTES*32]; //cseq[KYBER_INDCPA_BYTES], tc[KYBER_INDCPA_BYTES], pkseq[KYBER_INDCPA_PUBLICKEYBYTES], tpk[KYBER_INDCPA_PUBLICKEYBYTES];
+  uint8_t *cseq = (uint8_t *)malloc(KYBER_INDCPA_BYTES);
+  uint8_t *tc = (uint8_t *)malloc(KYBER_INDCPA_BYTES);
+  uint8_t *pkseq = (uint8_t *)malloc(KYBER_INDCPA_PUBLICKEYBYTES);
+  uint8_t *tpk = (uint8_t *)malloc(KYBER_INDCPA_PUBLICKEYBYTES);
   polyvec_16 sp, spseq, tpv, pkpvseq, ep, epseq, at[KYBER_K], t[KYBER_K], atseq[KYBER_K], b;
   poly_16 v, k, epp, tp, eppseq;
 
@@ -682,6 +696,11 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
   pack_ciphertext(cseq, &b, &v);
   cipher_formseqfrom16(cseq, tc, c);
 
+  free(cseq);
+  free(tc);
+  free(pkseq);
+  free(tpk);
+
 }
 
 
@@ -692,7 +711,11 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES*32],
 {
   polyvec_16 b, skpvseq;
   poly_16 v, mp;
-  uint8_t cseq[KYBER_INDCPA_BYTES], tc[KYBER_INDCPA_BYTES], mseq[KYBER_INDCPA_MSGBYTES*32], skseq[KYBER_INDCPA_SECRETKEYBYTES], tsk[KYBER_INDCPA_SECRETKEYBYTES];
+  uint8_t mseq[KYBER_INDCPA_MSGBYTES*32]; //skseq[KYBER_INDCPA_SECRETKEYBYTES], tsk[KYBER_INDCPA_SECRETKEYBYTES], cseq[KYBER_INDCPA_BYTES], tc[KYBER_INDCPA_BYTES];
+  uint8_t *cseq = (uint8_t *)malloc(KYBER_INDCPA_BYTES);
+  uint8_t *tc = (uint8_t *)malloc(KYBER_INDCPA_BYTES);
+  uint8_t *skseq = (uint8_t *)malloc(KYBER_INDCPA_SECRETKEYBYTES);
+  uint8_t *tsk = (uint8_t *)malloc(KYBER_INDCPA_SECRETKEYBYTES);
 
   cipher_formseqto16(c, tc, cseq);
   unpack_ciphertext(&b, &v, cseq);
@@ -705,19 +728,12 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES*32],
   //    vprint[j] = v.coeffs[j];
   // }
 
-  // uint8_t *skseq = (uint8_t *)malloc(KYBER_INDCPA_SECRETKEYBYTES);
-
   // for(int i = 0; i < 3*192; i++) {
   //   for(int j = 0; j < 16; j++) {
   //     skseq[i*32+j*2] = sk[j*3*384+i*2];
   //     skseq[i*32+j*2+1] = sk[j*3*384+1+i*2];
   //   }
   // }
-
-  // for(int i = 0; i < 3*384*16; i++) {
-  //   sk[i] = skseq[i];
-  // }
-  // free(skseq);
 
   keypair_formseqto16(sk, tsk, skseq);
   unpack_sk(&skpvseq, skseq);
@@ -736,4 +752,10 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES*32],
 
   poly_tomsg_16(mseq, &mp);
   msg_formseqfrom16(mseq, m);
+
+  free(cseq);
+  free(tc);
+  free(skseq);
+  free(tsk);
+  
 }

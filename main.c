@@ -27,7 +27,6 @@ int main()
     uint8_t *pk = (uint8_t *)malloc(KYBER_PUBLICKEYBYTES);
     uint8_t *sk = (uint8_t *)malloc(KYBER_SECRETKEYBYTES);
     uint8_t *ct = (uint8_t *)malloc(KYBER_CIPHERTEXTBYTES);
-    uint8_t *ctseq = (uint8_t *)malloc(KYBER_CIPHERTEXTBYTES);
     uint8_t *ss = (uint8_t *)malloc(KYBER_SSBYTES * 16);
     uint8_t *c = (uint8_t *)malloc(KYBER_INDCPA_BYTES);
     uint8_t m[KYBER_INDCPA_MSGBYTES * 32];
@@ -74,11 +73,11 @@ int main()
 #define gen_at(A, B) gen_matrix(A, B, 1)
 
     uint8_t buf[2 * KYBER_SYMBYTES] = {0};
-    const uint8_t *publicseed = buf;
-    const uint8_t *noiseseed = buf + KYBER_SYMBYTES;
-    uint8_t r[320 * 16];
+    // const uint8_t *publicseed = buf;
+    // const uint8_t *noiseseed = buf + KYBER_SYMBYTES;
+    // uint8_t r[320 * 16];
     polyvec_16 a[KYBER_K], skpv, e, pkpv, b;
-    poly_16 v, k, epp, mp;
+    // poly_16 v, k, epp, mp;
 
     // oper_second_n(while (0), randombytes, randombytes(buf, KYBER_SYMBYTES),
     //               200000, 1);
@@ -123,25 +122,25 @@ int main()
     //               200000, 16);
     // oper_second_n(while (0), ct_formseq, ct_formseq(ct, ctseq),
     //               200000, 16);
-    // oper_second_n(while (0), shake128_absorb_once, shake128_absorb_once(&state, buffer, 168),
-    //               200000, 1);
-    // oper_second_n(while (0), shake128_absorb_once, shake128_absorb_once(&state, buffer, 32),
-    //               200000, 1);
-    // oper_second_n(while (0), shake128_squeezeblocks, shake128_squeezeblocks(buffer, 1, &state),
-    //               200000, 1);
-    // oper_second_n(while (0), shake128x4_absorb_once, shake128x4_absorb_once(&statex4, buffer, buffer+1, buffer+2, buffer+3, 168),
-    //               200000, 1);
-    // oper_second_n(while (0), shake128x4_absorb_once, shake128x4_absorb_once(&statex4, buffer, buffer+1, buffer+2, buffer+3, 32),
-    //               200000, 1);
-    // oper_second_n(while (0), shake128x4_squeezeblocks, shake128x4_squeezeblocks(buffer, buffer+5, buffer+10, buffer+15, 1, &statex4),
-    //               200000, 1);
+    oper_second_n(while (0), shake128_absorb_once, shake128_absorb_once(&state, buffer, 168),
+                  200000, 1);
+    oper_second_n(while (0), shake128_absorb_once, shake128_absorb_once(&state, buffer, 32),
+                  200000, 1);
+    oper_second_n(while (0), shake128_squeezeblocks, shake128_squeezeblocks(buffer, 1, &state),
+                  200000, 1);
+    oper_second_n(while (0), shake128x4_absorb_once, shake128x4_absorb_once(&statex4, buffer, buffer+1, buffer+2, buffer+3, 168),
+                  200000, 1);
+    oper_second_n(while (0), shake128x4_absorb_once, shake128x4_absorb_once(&statex4, buffer, buffer+1, buffer+2, buffer+3, 32),
+                  200000, 1);
+    oper_second_n(while (0), shake128x4_squeezeblocks, shake128x4_squeezeblocks(buffer, buffer+5, buffer+10, buffer+15, 1, &statex4),
+                  200000, 4);
 
 #endif
 
 #ifdef indcpa_keypair_flag
 
     oper_second_n(while (0), Kyber_AVX2_16w_indcpa_keypair, indcpa_keypair(pk, sk),
-                  20000, 16);
+                  200000, 16);
 
     // FILE *f = fopen("test_indcpakeypair.txt", "w+");
    
@@ -172,21 +171,15 @@ int main()
     // {
     //     for (int j = 0; j < 32; j++)
     //     {
-    //         m[i * 32 + j] = i;
-    //         // m[i*16+j] = 1;
+    //         // m[i * 32 + j] = i;
+    //         m[i*32+j] = 1;
     //     }
     // }
 
     // FILE *f1 = fopen("test_indcpaenc.txt", "w+");
-    // if (f1 == NULL)
-    // {
-    //     printf("Fail to open test_indcpaenc.txt!");
-    //     fclose(f1);
-    //     return -1;
-    // }
 
     oper_second_n(while (0), Kyber_AVX2_16w_indcpa_enc, indcpa_enc(c, m, pk, coins),
-                  20000, 16);
+                  200000, 16);
 
     // indcpa_enc(c, m, pk, coins, pkpvprint, vprint);
     // indcpa_enc(c, m, pk, coins);
@@ -232,15 +225,9 @@ int main()
     // int16_t vprint[KYBER_N*16];
 
     // FILE *f2 = fopen("test_indcpadec.txt", "w+");
-    // if (f2 == NULL)
-    // {
-    //     printf("Fail to open test_indcpadec.txt!");
-    //     fclose(f2);
-    //     return -1;
-    // }
 
     oper_second_n(while (0), Kyber_AVX2_16w_indcpa_dec, indcpa_dec(m, c, sk),
-                  20000, 16);
+                  200000, 16);
 
     // indcpa_dec(m, c, sk);
     // indcpa_dec(m, c, sk, vprint);
@@ -286,19 +273,19 @@ int main()
 
 #ifdef kem_keypair_flag
     oper_second_n(while (0), crypto_kem_keypair_16w, crypto_kem_keypair(pk, sk),
-                  20000, 16);
+                  200000, 16);
     // crypto_kem_keypair(pk, sk);
 
-    // FILE *f2 = fopen("test_kem_keypair_pk.txt", "w+");
+    // FILE *f3 = fopen("test_kem_keypair_pk.txt", "w+");
 
     // for(int i = 0; i < KYBER_PUBLICKEYBYTES/16; i++) {
     //     for(int j = 0; j < 16; j++) {
-    //         fprintf(f2, "%7d", pk[i*16+j]);
+    //         fprintf(f3, "%7d", pk[i*16+j]);
     //     }
-    //     fputs("\n", f2);
+    //     fputs("\n", f3);
     // }
 
-    // fclose(f2);
+    // fclose(f3);
 
     // FILE *f3 = fopen("test_kem_keypair_sk.txt", "w+");
 
@@ -315,7 +302,7 @@ int main()
 
 #ifdef kem_enc_flag
     oper_second_n(while (0), crypto_kem_enc_16w, crypto_kem_enc(ct, ss, pk),
-                  20000, 16);
+                  200000, 16);
     // crypto_kem_enc(ct, ss, pk);
 
     // FILE *f4 = fopen("test_kem_enc_ss.txt", "w+");
@@ -334,7 +321,7 @@ int main()
 
 #ifdef kem_dec_flag
     oper_second_n(while (0), crypto_kem_dec_16w, crypto_kem_dec(ss, ct, sk),
-                  20000, 16);
+                  200000, 16);
     // crypto_kem_dec(ss, ct, sk);
 
     // FILE *f5 = fopen("test_kem_dec_ss.txt", "w+");
@@ -355,7 +342,6 @@ int main()
     free(sk);
     free(c);
     free(ct);
-    free(ctseq);
     free(ss);
 
     return 0;
