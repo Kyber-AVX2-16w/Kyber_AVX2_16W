@@ -380,7 +380,7 @@ void gen_matrix(polyvec_16 *a, const uint8_t seed[32*(2*16-1)], int transposed)
     ctr3 = rej_uniform_avx(a[2].vec[1].coeffs + i*KYBER_N, buf[3].coeffs);
 
     while(ctr0 < KYBER_N || ctr1 < KYBER_N || ctr2 < KYBER_N || ctr3 < KYBER_N) {
-      shake128x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 16, &state);
+      shake128x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 1, &state);
 
       ctr0 += rej_uniform(a[1].vec[1].coeffs + i*KYBER_N + ctr0, KYBER_N - ctr0, buf[0].coeffs, SHAKE128_RATE);
       ctr1 += rej_uniform(a[1].vec[2].coeffs + i*KYBER_N + ctr1, KYBER_N - ctr1, buf[1].coeffs, SHAKE128_RATE);
@@ -396,7 +396,7 @@ void gen_matrix(polyvec_16 *a, const uint8_t seed[32*(2*16-1)], int transposed)
     shake128_squeezeblocks(buf[0].coeffs, REJ_UNIFORM_AVX_NBLOCKS, &state1x);
     ctr0 = rej_uniform_avx(a[2].vec[2].coeffs + i*KYBER_N, buf[0].coeffs);
     while(ctr0 < KYBER_N) {
-      shake128_squeezeblocks(buf[0].coeffs, 16, &state1x);
+      shake128_squeezeblocks(buf[0].coeffs, 1, &state1x);
       ctr0 += rej_uniform(a[2].vec[2].coeffs + i*KYBER_N + ctr0, KYBER_N - ctr0, buf[0].coeffs, SHAKE128_RATE);
     }
 
