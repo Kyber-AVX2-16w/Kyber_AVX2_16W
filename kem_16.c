@@ -86,10 +86,10 @@ int crypto_kem_enc(uint8_t *ct,
              buf+(8*i+2)*KYBER_SYMBYTES, 
              buf+(8*i+4)*KYBER_SYMBYTES, 
              buf+(8*i+6)*KYBER_SYMBYTES, 
-             buf+3*SHAKE128_RATE+KYBER_SYMBYTES*i*4, 
-             buf+3*SHAKE128_RATE+KYBER_SYMBYTES*(i*4+1), 
-             buf+3*SHAKE128_RATE+KYBER_SYMBYTES*(i*4+2), 
-             buf+3*SHAKE128_RATE+KYBER_SYMBYTES*(i*4+3), 
+             buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*i*4, 
+             buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*(i*4+1), 
+             buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*(i*4+2), 
+             buf+KYBER_SYMBYTES*16+KYBER_SYMBYTES*(i*4+3), 
              KYBER_SYMBYTES);
   }
 
@@ -98,14 +98,14 @@ int crypto_kem_enc(uint8_t *ct,
   pk_separate16(pk, pk_sepa_16);  //这一步将kem_keypair产生的pk分离成每一路都是polyvec+publicseed的正常格式
   for(int i = 0; i < 4; i++) {
     hash_hx4(buf+(8*i+1)*KYBER_SYMBYTES, 
-                  buf+(8*i+3)*KYBER_SYMBYTES, 
-                  buf+(8*i+5)*KYBER_SYMBYTES, 
-                  buf+(8*i+7)*KYBER_SYMBYTES, 
-                  pk_sepa_16+KYBER_PUBLICKEYBYTES/16*i*4, 
-                  pk_sepa_16+KYBER_PUBLICKEYBYTES/16*(i*4+1), 
-                  pk_sepa_16+KYBER_PUBLICKEYBYTES/16*(i*4+2), 
-                  pk_sepa_16+KYBER_PUBLICKEYBYTES/16*(i*4+3), 
-                  KYBER_PUBLICKEYBYTES/16-KYBER_SYMBYTES);
+             buf+(8*i+3)*KYBER_SYMBYTES, 
+             buf+(8*i+5)*KYBER_SYMBYTES, 
+             buf+(8*i+7)*KYBER_SYMBYTES, 
+             pk_sepa_16+KYBER_PUBLICKEYBYTES/16*i*4, 
+             pk_sepa_16+KYBER_PUBLICKEYBYTES/16*(i*4+1), 
+             pk_sepa_16+KYBER_PUBLICKEYBYTES/16*(i*4+2), 
+             pk_sepa_16+KYBER_PUBLICKEYBYTES/16*(i*4+3), 
+             KYBER_PUBLICKEYBYTES/16-KYBER_SYMBYTES);
   }
 
   //buf = (m||H(pk)) * 16
@@ -219,7 +219,7 @@ int crypto_kem_dec(uint8_t *ss,
 
   /* Overwrite pre-k with z on re-encryption failure */
   for(int i = 0; i < 16; i++) {
-    cmov(kr+KYBER_SYMBYTES*(2*i+1), sk+KYBER_SECRETKEYBYTES/16*i-KYBER_SYMBYTES, KYBER_SYMBYTES, fail);
+    cmov(kr+KYBER_SYMBYTES*2*i, sk+KYBER_SECRETKEYBYTES/16*i-KYBER_SYMBYTES, KYBER_SYMBYTES, fail);
   }
   
   /* hash concatenation of pre-k and H(c) to k */

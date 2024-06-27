@@ -233,6 +233,7 @@ vmovdqa     (240-((\off/128)*2+6)*16)*2(%rsi), %ymm1
 
 butterfly	4,6,8,10,5,7,9,11,15,1,2,3
 
+vmovdqa		_16XV_16*2(%rsi),%ymm1
 .if (\off%128) == 4
 red16		4
 .endif
@@ -251,6 +252,7 @@ vmovdqa     (112-((\off/128)+3)*16)*2(%rsi), %ymm1
 
 butterfly	4,6,5,7,8,10,9,11,1,1,2,2
 
+vmovdqa		_16XV_16*2(%rsi),%ymm1
 .if (\off%128) == 0 
 red16		4
 .endif
